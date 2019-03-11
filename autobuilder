@@ -1,0 +1,85 @@
+#!/bin/bash
+
+run_autoreconf() {
+  autoreconf -vif >&autoreconf.log ||
+    {
+      echo "Error in autoreconf: see $PWD/autoreconf.log"
+      return 1
+    }
+}
+
+run_autogen() {
+  ./autogen.sh >&autogen.log ||
+    {
+      echo "Error in autogen.sh: see $PWD/autogen.log"
+      return 1
+    }
+}
+
+run_configure() {
+  ./configure >&configure.log ||
+    {
+      echo "Error in configure: see $PWD/configure.log"
+      return 1
+    }
+}
+
+run_cmake() {
+  mkdir -p build
+  cd build
+  cmake .. >&cmake.log ||
+    {
+      echo "Error in cmake: see $PWD/cmake.log"
+      cd ..
+      return 1
+    }
+  cd ..
+}
+
+run_bootstrap() {
+  ./bootstrap >&bootstrap.log ||
+    {
+      echo "Error in configure: see $PWD/bootstrap.log"
+      return 1
+    }
+}
+
+run_buildconf() {
+  ./buildconf >&buildconf.log ||
+    {
+      echo "Error in configure: see $PWD/bootstrap.log"
+      return 1
+    }
+}
+
+if [[ -f "Makefile" ]]; then
+  echo "Makefile exists. Skip"
+  exit 0
+elif [[ -f "configure" ]]; then
+  echo "configure found."
+  run_configure || exit 1
+elif [[ -f "CMakeLists.txt" ]]; then
+  echo "CMakeLists.txt found."
+  run_cmake || exit 1
+elif [[ -f "autogen.sh" ]]; then
+  echo "autogen.sh found."
+  run_autogen || exit 1
+  run_configure || exit 1
+elif [[ -f "bootstrap" ]]; then
+  echo "bootstrap found."
+  run_bootstrap || exit 1
+  run_configure || exit 1
+elif [[ -f "buildconf" ]]; then
+  echo "buildconf found."
+  run_buildconf || exit 1
+  run_configure || exit 1
+elif [[ -f "configure.ac" ]]; then
+  echo "configure.ac found."
+  run_autoreconf || exit 1
+  run_configure || exit 1
+else
+  echo "build files not found"
+  exit 1
+fi
+
+echo "successfully generated Makefile"
